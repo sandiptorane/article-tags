@@ -12,11 +12,10 @@ func RegisterRoutes(app *handler.Application) *gin.Engine {
 
 	r.NoRoute(NoRoute)
 
-	r.POST("/tags")
-	r.PUT("/tags")
-	r.GET("/tags/:publication")
-	r.GET("/tags/popular")
-	r.DELETE("/tags")
+	r.POST("/tags", app.AddTag)
+	r.GET("/tags/:publication", app.GetFollowedTags)
+	r.GET("/tags/popular/:publication", app.GetPopularTags)
+	r.DELETE("/tags/:publication", app.DeleteTag)
 
 	r.GET("/health", HealthCheck)
 

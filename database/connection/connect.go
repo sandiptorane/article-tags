@@ -38,7 +38,7 @@ func NewAWS() (aws.Config, error) {
 	)
 
 	awsCfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithSharedConfigProfile("AWS_PROFILE"),
+		config.WithSharedConfigProfile(os.Getenv("AWS_PROFILE")),
 		config.WithEndpointResolverWithOptions(customResolver))
 
 	if err != nil {
