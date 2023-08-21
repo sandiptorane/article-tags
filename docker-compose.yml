@@ -1,0 +1,30 @@
+version: "3.9"
+name: article_tags
+
+networks:
+  article_tag_network:
+    external: true
+
+volumes:
+  localstack_data:
+
+services:
+  # ref 1: https://dev.to/goodidea/how-to-fake-aws-locally-with-localstack-27me
+  # ref 2: https://github.com/localstack/localstack/blob/master/docker-compose.yml
+  # http://localhost:4566/health - verify the services
+  # http://localhost:8055 - pro version
+  localstack:
+    container_name: tag_localstack
+    image: localstack/localstack:1.4
+    restart: always
+    ports:
+      - "4566:4566" # Localstack Gateway
+    environment:
+      - DEFAULT_REGION=ap-southeast-1
+      - SERVICES=dynamodb
+      - DEBUG=1
+    volumes:
+      - localstack_data:/var/lib/localstack
+    networks:
+      - article_tag_network
+
