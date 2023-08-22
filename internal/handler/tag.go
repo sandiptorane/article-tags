@@ -1,17 +1,18 @@
 package handler
 
 import (
-	"article-tags/database/model"
+	"article-tags/internal/model"
 	"article-tags/pkg/response"
 	svctypes "article-tags/types"
 	"github.com/gin-gonic/gin"
 	"log"
 )
 
+// AddTag add tags to followed list for particular publication
 func (app *Application) AddTag(c *gin.Context) {
 	var req svctypes.POSTUserTags
 
-	err := c.BindJSON(&req)
+	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		response.BadRequest(c, "bad request", err.Error())
 		return
@@ -24,6 +25,7 @@ func (app *Application) AddTag(c *gin.Context) {
 		if err != nil {
 			log.Println("create table failed")
 			response.InternalServerError(c, "db operation failed", nil)
+
 			return
 		}
 	}
@@ -56,6 +58,7 @@ func (app *Application) AddTag(c *gin.Context) {
 		if err != nil {
 			log.Println("failed to save tag err: ", err.Error())
 			response.InternalServerError(c, "failed to save tag", nil)
+
 			return
 		}
 	}
@@ -69,6 +72,7 @@ func (app *Application) GetFollowedTags(c *gin.Context) {
 	publication := c.Param("publication")
 	log.Println("fetching tags:", "username:", username, "publication:", publication)
 
+	// fetch all followed tags of user
 	data, err := app.ArticleStore.Get(c, publication, username)
 	if err != nil {
 		log.Println("error fetching tags:", "username:", username, "publication:", publication)
@@ -77,12 +81,11 @@ func (app *Application) GetFollowedTags(c *gin.Context) {
 		return
 	}
 
-	log.Println("length of data", len(data))
 	resp := svctypes.GetUserTagsResp{
 		Publication: publication,
 	}
 
-	// add tags
+	// add tags to response
 	for _, d := range data {
 		resp.Tags = append(resp.Tags, d.SK)
 	}
@@ -90,12 +93,14 @@ func (app *Application) GetFollowedTags(c *gin.Context) {
 	response.Success(c, "success", resp)
 }
 
-// GetPopularTags fetch followed tags by other users for publication
+// GetPopularTags fetch followed tags by other users for publication.
+// and exclude already followed tags by user
 func (app *Application) GetPopularTags(c *gin.Context) {
 	username := c.Query("username")
 	publication := c.Param("publication")
 	log.Println("fetching tags:", "username:", username, "publication:", publication)
 
+	// fetch popular tags
 	data, err := app.ArticleStore.GetPopularTags(c, username, publication)
 	if err != nil {
 		log.Println("error fetching tags:", "username:", username, "publication:", publication)
@@ -116,6 +121,8 @@ func (app *Application) GetPopularTags(c *gin.Context) {
 	response.Success(c, "success", resp)
 }
 
+// DeleteTag delete tag from followed list for particular publication
+// and decrement total_count of tag for that tag
 func (app *Application) DeleteTag(c *gin.Context) {
 	var req svctypes.DeleteTagRequest
 
@@ -144,10 +151,12 @@ func (app *Application) DeleteTag(c *gin.Context) {
 		return
 	}
 
+	// delete tag
 	err = app.ArticleStore.Delete(c, input)
 	if err != nil {
 		log.Println("failed to save delete err: ", err.Error())
 		response.InternalServerError(c, "failed to delete tag", nil)
+
 		return
 	}
 

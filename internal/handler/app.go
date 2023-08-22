@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"article-tags/database/dynamo"
-	"article-tags/database/model"
+	"article-tags/internal/database/dynamo"
+	"article-tags/internal/model"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )

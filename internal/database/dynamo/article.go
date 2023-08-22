@@ -1,7 +1,7 @@
 package dynamo
 
 import (
-	"article-tags/database/model"
+	"article-tags/internal/model"
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -130,6 +130,10 @@ func (a *ArticleTag) Save(ctx context.Context, data *model.UserTag) error {
 	}
 
 	_, err = a.db.PutItem(ctx, input)
+	if err != nil {
+		log.Println("error save tag PutItem: ", err)
+		return err
+	}
 
 	counterInput := dynamodb.UpdateItemInput{
 		TableName: aws.String("article-tag"),
@@ -146,7 +150,7 @@ func (a *ArticleTag) Save(ctx context.Context, data *model.UserTag) error {
 
 	_, err = a.db.UpdateItem(ctx, &counterInput)
 	if err != nil {
-		fmt.Println("error updating count: ", err)
+		log.Println("error updating count: ", err)
 		return err
 	}
 
@@ -304,6 +308,10 @@ func (a *ArticleTag) Delete(ctx context.Context, request *model.UserTagRequest) 
 	}
 
 	_, err := a.db.DeleteItem(ctx, input)
+	if err != nil {
+		log.Println("error delete tag: ", err)
+		return err
+	}
 
 	counterInput := dynamodb.UpdateItemInput{
 		TableName: aws.String("article-tag"),
@@ -320,7 +328,7 @@ func (a *ArticleTag) Delete(ctx context.Context, request *model.UserTagRequest) 
 
 	_, err = a.db.UpdateItem(ctx, &counterInput)
 	if err != nil {
-		fmt.Println("error storing new item 2222: ", err)
+		log.Println("error updating count: ", err)
 		return err
 	}
 

@@ -1,7 +1,7 @@
-package main
+package routes
 
 import (
-	"article-tags/handler"
+	"article-tags/internal/handler"
 	"article-tags/pkg/response"
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +14,7 @@ func RegisterRoutes(app *handler.Application) *gin.Engine {
 
 	r.POST("/tags", app.AddTag)
 	r.GET("/tags/:publication", app.GetFollowedTags)
-	r.GET("/tags/popular/:publication", app.GetPopularTags)
+	r.GET("/tags/:publication/popular", app.GetPopularTags)
 	r.DELETE("/tags/:publication", app.DeleteTag)
 
 	r.GET("/health", HealthCheck)
