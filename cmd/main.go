@@ -1,8 +1,9 @@
 package main
 
 import (
-	"article-tags/database/connection"
-	"article-tags/handler"
+	"article-tags/internal/database/connection"
+	"article-tags/internal/handler"
+	"article-tags/internal/routes"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -23,7 +24,7 @@ func main() {
 	app := handler.NewApplication(conn)
 
 	// register routes
-	r := RegisterRoutes(app)
+	r := routes.RegisterRoutes(app)
 
 	// run server
 	err = r.Run(os.Getenv("PORT"))

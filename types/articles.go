@@ -2,9 +2,9 @@ package types
 
 // POSTUserTags holds article tags details
 type POSTUserTags struct {
-	Username    string   `json:"username" bind:"required"`
-	Publication string   `json:"publication" bind:"required"`
-	Tags        []string `json:"tags" bind:"required"`
+	Username    string   `json:"username" binding:"required"`
+	Publication string   `json:"publication" binding:"required"`
+	Tags        []string `json:"tags" binding:"required"`
 }
 
 type GetUserTagsResp struct {
@@ -13,6 +13,6 @@ type GetUserTagsResp struct {
 }
 
 type DeleteTagRequest struct {
-	Username string `json:"username" bind:"required"`
-	Tag      string `json:"tag" bind:"required"`
+	Username string `json:"username" binding:"required"`
+	Tag      string `json:"tag" binding:"required"`
 }
