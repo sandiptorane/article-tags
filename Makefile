@@ -15,3 +15,7 @@ mock:
 ## Run all the tests by excluding auto-generated/conditional packages
 unit-test:
 	go test ./... -mod=readonly -cover -covermode=${COVER_MODE} -coverprofile=${COVER_PROFILE} -coverpkg=${GO_COVER_PKG}
+
+# check coverage
+test-cover:
+	go tool cover -func ${COVER_PROFILE}

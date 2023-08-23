@@ -25,7 +25,7 @@ type Resp struct {
 func TestApplication_AddTag(t *testing.T) {
 
 	type args struct {
-		c *gin.Context
+		publication string
 	}
 	tests := []struct {
 		name       string
@@ -40,15 +40,12 @@ func TestApplication_AddTag(t *testing.T) {
 			mockDB: func(t *testing.T) model.UserTagStore {
 				db := mocks.NewUserTagStore(t)
 				db.EXPECT().Save(mock.Anything, mock.Anything).Return(nil)
-				db.EXPECT().GetByPublicationTag(mock.Anything, mock.Anything).Return(nil, nil)
-				db.EXPECT().DescribeTable(mock.Anything).Return(errors.New("table not exists"))
-				db.EXPECT().CreateTable(mock.Anything).Return(nil)
 
 				return db
 			},
+			args: args{publication: "ST"},
 			body: []byte(`{
                "username": "Sandip",
-               "publication" : "this is a content",
                "tags": ["tech","science"]
               }`),
 			wantStatus: http.StatusCreated,
@@ -59,35 +56,14 @@ func TestApplication_AddTag(t *testing.T) {
 			},
 		},
 		{
-			name: "Should fail when create table fail",
-			mockDB: func(t *testing.T) model.UserTagStore {
-				db := mocks.NewUserTagStore(t)
-				db.EXPECT().DescribeTable(mock.Anything).Return(errors.New("table not exists"))
-				db.EXPECT().CreateTable(mock.Anything).Return(errors.New("create table failed"))
-
-				return db
-			},
-			body: []byte(`{
-               "username": "Sandip",
-               "publication" : "this is a content",
-               "tags": ["tech","science"]
-              }`),
-			wantStatus: http.StatusInternalServerError,
-			wantResp: Resp{
-				Status:  http.StatusInternalServerError,
-				Message: "db operation failed",
-				Data:    nil,
-			},
-		},
-		{
 			name: "Should fail when validation failed",
 			mockDB: func(t *testing.T) model.UserTagStore {
 				db := mocks.NewUserTagStore(t)
 				return db
 			},
+			args: args{publication: "ST"},
 			body: []byte(`{
                "username": "",
-               "publication" : "this is a content",
                "tags": ["tech","science"]
               }`),
 			wantStatus: http.StatusBadRequest,
@@ -102,14 +78,12 @@ func TestApplication_AddTag(t *testing.T) {
 			mockDB: func(t *testing.T) model.UserTagStore {
 				db := mocks.NewUserTagStore(t)
 				db.EXPECT().Save(mock.Anything, mock.Anything).Return(errors.New("dynamo:error"))
-				db.EXPECT().GetByPublicationTag(mock.Anything, mock.Anything).Return(nil, nil)
-				db.EXPECT().DescribeTable(mock.Anything).Return(nil)
 
 				return db
 			},
+			args: args{publication: "ST"},
 			body: []byte(`{
                "username": "Sandip",
-               "publication" : "ST",
                "tags": ["tech","science"]
               }`),
 			wantStatus: http.StatusInternalServerError,
@@ -128,10 +102,10 @@ func TestApplication_AddTag(t *testing.T) {
 			}
 
 			r := gin.Default()
-			r.POST("/tags", app.AddTag)
+			r.POST("/tags/:publication", app.AddTag)
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/tags", bytes.NewReader(tt.body))
+			req, err := http.NewRequest("POST", "/tags/"+tt.args.publication, bytes.NewReader(tt.body))
 			if err != nil {
 				t.Log("new request error ", err)
 				return
@@ -217,6 +191,7 @@ func TestApplication_GetPopularTags(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			app := &Application{
@@ -369,11 +344,6 @@ func TestApplication_DeleteTag(t *testing.T) {
 			mockDB: func(t *testing.T) model.UserTagStore {
 				db := mocks.NewUserTagStore(t)
 				db.EXPECT().Delete(mock.Anything, mock.Anything).Return(nil)
-				db.EXPECT().GetByPublicationTag(mock.Anything, mock.Anything).Return(&model.UserTag{
-					PK:          "Sandip#ST",
-					SK:          "tech",
-					Publication: "ST",
-				}, nil)
 
 				return db
 			},
@@ -414,11 +384,6 @@ func TestApplication_DeleteTag(t *testing.T) {
 			mockDB: func(t *testing.T) model.UserTagStore {
 				db := mocks.NewUserTagStore(t)
 				db.EXPECT().Delete(mock.Anything, mock.Anything).Return(errors.New("dynamo:error"))
-				db.EXPECT().GetByPublicationTag(mock.Anything, mock.Anything).Return(&model.UserTag{
-					PK:          "Sandip#ST",
-					SK:          "tech",
-					Publication: "ST",
-				}, nil)
 
 				return db
 			},
