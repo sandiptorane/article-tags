@@ -2,9 +2,8 @@ package types
 
 // POSTUserTags holds article tags details
 type POSTUserTags struct {
-	Username    string   `json:"username" binding:"required"`
-	Publication string   `json:"publication" binding:"required"`
-	Tags        []string `json:"tags" binding:"required"`
+	Username string   `json:"username" binding:"required"`
+	Tags     []string `json:"tags" binding:"required"`
 }
 
 type GetUserTagsResp struct {

@@ -1,6 +1,7 @@
 package dynamo
 
 import (
+	"article-tags/internal/constants"
 	"article-tags/internal/model"
 	"context"
 	"fmt"
@@ -28,6 +29,8 @@ type ArticleTag struct {
 	db DynamodbAPI
 }
 
+const articleTagTable = "article-tag"
+
 // verify interface compliance in compile time
 var _ DynamodbAPI = (*dynamodb.Client)(nil)
 
@@ -38,7 +41,7 @@ func GetInstance(db *dynamodb.Client) *ArticleTag {
 
 // DescribeTable check table exists or not
 func (a *ArticleTag) DescribeTable(ctx context.Context) error {
-	param := &dynamodb.DescribeTableInput{TableName: aws.String("article-tag")}
+	param := &dynamodb.DescribeTableInput{TableName: aws.String(articleTagTable)}
 	_, err := a.db.DescribeTable(ctx, param)
 	if err != nil {
 		log.Println("describe table error", err)
@@ -51,7 +54,7 @@ func (a *ArticleTag) DescribeTable(ctx context.Context) error {
 // CreateTable create table
 func (a *ArticleTag) CreateTable(ctx context.Context) error {
 	input := dynamodb.CreateTableInput{
-		TableName: aws.String("article-tag"),
+		TableName: aws.String(articleTagTable),
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
 				AttributeName: aws.String("PK"),
@@ -115,8 +118,15 @@ func (a *ArticleTag) CreateTable(ctx context.Context) error {
 	return nil
 }
 
-// Save user tag
-func (a *ArticleTag) Save(ctx context.Context, data *model.UserTag) error {
+// Save user tag and increment total tag count
+func (a *ArticleTag) Save(ctx context.Context, req *model.UserTagRequest) error {
+	// convert to data model
+	data := &model.UserTag{
+		PK:          req.Username + "#" + req.Publication,
+		SK:          req.Tag,
+		Publication: req.Publication,
+	}
+
 	items, err := attributevalue.MarshalMap(data)
 	if err != nil {
 		return err
@@ -125,18 +135,25 @@ func (a *ArticleTag) Save(ctx context.Context, data *model.UserTag) error {
 	log.Println("input item", items)
 
 	input := &dynamodb.PutItemInput{
-		Item:      items,
-		TableName: aws.String("article-tag"),
+		Item:         items,
+		TableName:    aws.String(articleTagTable),
+		ReturnValues: types.ReturnValueAllOld,
 	}
 
-	_, err = a.db.PutItem(ctx, input)
+	res, err := a.db.PutItem(ctx, input)
 	if err != nil {
 		log.Println("error save tag PutItem: ", err)
 		return err
 	}
 
+	// update the tag count if user is following new tag
+	// else return
+	if res.Attributes != nil {
+		return nil
+	}
+
 	counterInput := dynamodb.UpdateItemInput{
-		TableName: aws.String("article-tag"),
+		TableName: aws.String(articleTagTable),
 		Key: map[string]types.AttributeValue{
 			"PK": &types.AttributeValueMemberS{Value: fmt.Sprintf("PUB#%s", data.Publication)},
 			"SK": &types.AttributeValueMemberS{Value: data.SK},
@@ -157,14 +174,14 @@ func (a *ArticleTag) Save(ctx context.Context, data *model.UserTag) error {
 	return err
 }
 
-// Get UserTag
+// Get all user tags by publication and username
 func (a *ArticleTag) Get(ctx context.Context, publication, username string) ([]*model.UserTag, error) {
 	input := &dynamodb.QueryInput{
 		KeyConditionExpression: aws.String("PK = :pub_id"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":pub_id": &types.AttributeValueMemberS{Value: fmt.Sprintf("%s#%s", username, publication)},
 		},
-		TableName: aws.String("article-tag"),
+		TableName: aws.String(articleTagTable),
 	}
 
 	res, err := a.db.Query(ctx, input)
@@ -190,38 +207,6 @@ func (a *ArticleTag) Get(ctx context.Context, publication, username string) ([]*
 	return articles, nil
 }
 
-// GetByPublicationTag fetch user followed tag for particular tag
-func (a *ArticleTag) GetByPublicationTag(ctx context.Context, request *model.UserTagRequest) (*model.UserTag, error) {
-	input := &dynamodb.GetItemInput{
-		Key: map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: fmt.Sprintf("%s#%s", request.Username, request.Publication)},
-			"SK": &types.AttributeValueMemberS{Value: request.Tag},
-		},
-
-		TableName: aws.String("article-tag"),
-	}
-
-	res, err := a.db.GetItem(ctx, input)
-	if err != nil {
-		log.Println("error fetching article", err)
-		return nil, err
-	}
-
-	if res.Item == nil {
-		return nil, nil
-	}
-
-	var article model.UserTag
-
-	err = attributevalue.UnmarshalMap(res.Item, &article)
-	if err != nil {
-		log.Println("unmarshall error", err)
-		return nil, err
-	}
-
-	return &article, nil
-}
-
 func (a *ArticleTag) GetPopularTags(ctx context.Context, username, publication string) ([]*model.UserTag, error) {
 	// fetch already added tag for user
 	existingTags, err := a.Get(ctx, publication, username)
@@ -233,17 +218,13 @@ func (a *ArticleTag) GetPopularTags(ctx context.Context, username, publication s
 	input := &dynamodb.QueryInput{
 		IndexName:              aws.String("countIndex"),
 		KeyConditionExpression: aws.String("PK = :pub_id AND total_count > :mincount"),
-		//FilterExpression:       aws.String("#v2 > :v2"),
-		//ExpressionAttributeNames: map[string]string{
-		//	"#v2": "total_count",
-		//},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":pub_id":   &types.AttributeValueMemberS{Value: fmt.Sprintf("PUB#%s", publication)},
 			":mincount": &types.AttributeValueMemberN{Value: "0"},
 		},
 		ScanIndexForward: aws.Bool(false), // ascending order
-		TableName:        aws.String("article-tag"),
-		Limit:            aws.Int32(50),
+		TableName:        aws.String(articleTagTable),
+		Limit:            aws.Int32(constants.PopularTagLimit),
 	}
 
 	if len(existingTags) > 0 {
@@ -303,18 +284,25 @@ func (a *ArticleTag) Delete(ctx context.Context, request *model.UserTagRequest) 
 			"PK": &types.AttributeValueMemberS{Value: fmt.Sprintf("%s#%s", request.Username, request.Publication)},
 			"SK": &types.AttributeValueMemberS{Value: request.Tag},
 		},
+		ReturnValues: types.ReturnValueAllOld,
 
-		TableName: aws.String("article-tag"),
+		TableName: aws.String(articleTagTable),
 	}
 
-	_, err := a.db.DeleteItem(ctx, input)
+	res, err := a.db.DeleteItem(ctx, input)
 	if err != nil {
 		log.Println("error delete tag: ", err)
 		return err
 	}
 
+	// update the tag count if tag deleted
+	// else return
+	if res.Attributes == nil {
+		return nil
+	}
+
 	counterInput := dynamodb.UpdateItemInput{
-		TableName: aws.String("article-tag"),
+		TableName: aws.String(articleTagTable),
 		Key: map[string]types.AttributeValue{
 			"PK": &types.AttributeValueMemberS{Value: fmt.Sprintf("PUB#%s", request.Publication)},
 			"SK": &types.AttributeValueMemberS{Value: request.Tag},

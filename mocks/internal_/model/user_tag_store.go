@@ -205,61 +205,6 @@ func (_c *UserTagStore_Get_Call) RunAndReturn(run func(context.Context, string, 
 	return _c
 }
 
-// GetByPublicationTag provides a mock function with given fields: ctx, request
-func (_m *UserTagStore) GetByPublicationTag(ctx context.Context, request *model.UserTagRequest) (*model.UserTag, error) {
-	ret := _m.Called(ctx, request)
-
-	var r0 *model.UserTag
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *model.UserTagRequest) (*model.UserTag, error)); ok {
-		return rf(ctx, request)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, *model.UserTagRequest) *model.UserTag); ok {
-		r0 = rf(ctx, request)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.UserTag)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, *model.UserTagRequest) error); ok {
-		r1 = rf(ctx, request)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UserTagStore_GetByPublicationTag_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetByPublicationTag'
-type UserTagStore_GetByPublicationTag_Call struct {
-	*mock.Call
-}
-
-// GetByPublicationTag is a helper method to define mock.On call
-//   - ctx context.Context
-//   - request *model.UserTagRequest
-func (_e *UserTagStore_Expecter) GetByPublicationTag(ctx interface{}, request interface{}) *UserTagStore_GetByPublicationTag_Call {
-	return &UserTagStore_GetByPublicationTag_Call{Call: _e.mock.On("GetByPublicationTag", ctx, request)}
-}
-
-func (_c *UserTagStore_GetByPublicationTag_Call) Run(run func(ctx context.Context, request *model.UserTagRequest)) *UserTagStore_GetByPublicationTag_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.UserTagRequest))
-	})
-	return _c
-}
-
-func (_c *UserTagStore_GetByPublicationTag_Call) Return(_a0 *model.UserTag, _a1 error) *UserTagStore_GetByPublicationTag_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *UserTagStore_GetByPublicationTag_Call) RunAndReturn(run func(context.Context, *model.UserTagRequest) (*model.UserTag, error)) *UserTagStore_GetByPublicationTag_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetPopularTags provides a mock function with given fields: ctx, username, publication
 func (_m *UserTagStore) GetPopularTags(ctx context.Context, username string, publication string) ([]*model.UserTag, error) {
 	ret := _m.Called(ctx, username, publication)
@@ -317,11 +262,11 @@ func (_c *UserTagStore_GetPopularTags_Call) RunAndReturn(run func(context.Contex
 }
 
 // Save provides a mock function with given fields: ctx, data
-func (_m *UserTagStore) Save(ctx context.Context, data *model.UserTag) error {
+func (_m *UserTagStore) Save(ctx context.Context, data *model.UserTagRequest) error {
 	ret := _m.Called(ctx, data)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *model.UserTag) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *model.UserTagRequest) error); ok {
 		r0 = rf(ctx, data)
 	} else {
 		r0 = ret.Error(0)
@@ -337,14 +282,14 @@ type UserTagStore_Save_Call struct {
 
 // Save is a helper method to define mock.On call
 //   - ctx context.Context
-//   - data *model.UserTag
+//   - data *model.UserTagRequest
 func (_e *UserTagStore_Expecter) Save(ctx interface{}, data interface{}) *UserTagStore_Save_Call {
 	return &UserTagStore_Save_Call{Call: _e.mock.On("Save", ctx, data)}
 }
 
-func (_c *UserTagStore_Save_Call) Run(run func(ctx context.Context, data *model.UserTag)) *UserTagStore_Save_Call {
+func (_c *UserTagStore_Save_Call) Run(run func(ctx context.Context, data *model.UserTagRequest)) *UserTagStore_Save_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*model.UserTag))
+		run(args[0].(context.Context), args[1].(*model.UserTagRequest))
 	})
 	return _c
 }
@@ -354,7 +299,7 @@ func (_c *UserTagStore_Save_Call) Return(_a0 error) *UserTagStore_Save_Call {
 	return _c
 }
 
-func (_c *UserTagStore_Save_Call) RunAndReturn(run func(context.Context, *model.UserTag) error) *UserTagStore_Save_Call {
+func (_c *UserTagStore_Save_Call) RunAndReturn(run func(context.Context, *model.UserTagRequest) error) *UserTagStore_Save_Call {
 	_c.Call.Return(run)
 	return _c
 }

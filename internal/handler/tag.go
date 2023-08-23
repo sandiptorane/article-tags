@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"article-tags/internal/constants"
 	"article-tags/internal/model"
 	"article-tags/pkg/response"
 	svctypes "article-tags/types"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"log"
 )
@@ -18,42 +20,21 @@ func (app *Application) AddTag(c *gin.Context) {
 		return
 	}
 
-	// check table if exists or not. if not present create new
-	err = app.ArticleStore.DescribeTable(c)
+	err = validateAddTagRequest(c)
 	if err != nil {
-		err = app.ArticleStore.CreateTable(c)
-		if err != nil {
-			log.Println("create table failed")
-			response.InternalServerError(c, "db operation failed", nil)
-
-			return
-		}
+		log.Println("validation error:", err.Error())
+		return
 	}
 
 	// save all tags
 	for _, tag := range req.Tags {
-		input := &model.UserTag{
-			PK:          req.Username + "#" + req.Publication,
-			SK:          tag,
-			Publication: req.Publication,
-		}
-
-		// check tag is already added or not
-		existingTag, err := app.ArticleStore.GetByPublicationTag(c, &model.UserTagRequest{
+		input := &model.UserTagRequest{
 			Username:    req.Username,
-			Publication: req.Publication,
 			Tag:         tag,
-		})
-		if err != nil {
-			response.InternalServerError(c, "failed to save tag", nil)
-			return
+			Publication: c.Param(constants.Publication),
 		}
 
-		// skip if already added
-		if existingTag != nil {
-			continue
-		}
-
+		// save article
 		err = app.ArticleStore.Save(c, input)
 		if err != nil {
 			log.Println("failed to save tag err: ", err.Error())
@@ -66,10 +47,29 @@ func (app *Application) AddTag(c *gin.Context) {
 	response.Created(c, "tags added successfully", nil)
 }
 
+func validateAddTagRequest(c *gin.Context) error {
+	// validate publication
+	publication := c.Param(constants.Publication)
+	var isValid bool
+	for _, p := range constants.AllowdedPublications {
+		if p == publication {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		response.BadRequest(c, "invalid publication", nil)
+		return errors.New("invalid request")
+	}
+
+	return nil
+}
+
 // GetFollowedTags fetch user followed tags for publication
 func (app *Application) GetFollowedTags(c *gin.Context) {
-	username := c.Query("username")
-	publication := c.Param("publication")
+	username := c.Query(constants.Username)
+	publication := c.Param(constants.Publication)
 	log.Println("fetching tags:", "username:", username, "publication:", publication)
 
 	// fetch all followed tags of user
@@ -97,7 +97,7 @@ func (app *Application) GetFollowedTags(c *gin.Context) {
 // and exclude already followed tags by user
 func (app *Application) GetPopularTags(c *gin.Context) {
 	username := c.Query("username")
-	publication := c.Param("publication")
+	publication := c.Param(constants.Publication)
 	log.Println("fetching tags:", "username:", username, "publication:", publication)
 
 	// fetch popular tags
@@ -134,21 +134,8 @@ func (app *Application) DeleteTag(c *gin.Context) {
 
 	input := &model.UserTagRequest{
 		Username:    req.Username,
-		Publication: c.Param("publication"),
+		Publication: c.Param(constants.Publication),
 		Tag:         req.Tag,
-	}
-
-	// check tag is already deleted or not
-	existingTag, err := app.ArticleStore.GetByPublicationTag(c, input)
-	if err != nil {
-		response.InternalServerError(c, "failed to delete tag", nil)
-		return
-	}
-
-	// return resp if already deleted
-	if existingTag == nil {
-		response.Success(c, "success", nil)
-		return
 	}
 
 	// delete tag
